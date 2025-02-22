@@ -7,16 +7,16 @@ canvas.height = window.innerHeight;
 async function fetchBoids() {
     try {
         const response = await fetch("/boids");
-        const boids = await response.json();
-        drawBoids(boids);
+        const flock = await response.json();
+        drawBoids(flock);
     } catch (error) {
         console.error("Failed to fetch boids:", error);
     }
 }
 
-function drawBoids(boids) {
+function drawBoids(flock) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    boids.forEach(boid => {
+    flock.boids.forEach(boid => {
         ctx.beginPath();
         ctx.arc(boid.x, boid.y, 5, 0, Math.PI * 2);
         ctx.fillStyle = "white";
