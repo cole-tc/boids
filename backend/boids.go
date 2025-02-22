@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"math/rand"
 )
 
@@ -52,9 +53,17 @@ func CreateFlock(flockSize int) Flock {
 func UpdateFlock(flock Flock) Flock {
 	// StackOverflow: "Structs are copied in range loops. You need to access by index."
 	for i := range flock.Boids {
-		Rule1X, Rule1Y := FlyTowardsCenter(flock, &flock.Boids[i])
-		flock.Boids[i].X += Rule1X
-		flock.Boids[i].Y += Rule1Y
+		offsetX, offsetY := FlyTowardsCenter(flock, &flock.Boids[i])
+		flock.Boids[i].VX += offsetX
+		flock.Boids[i].VY += offsetY
+
+		offsetX, offsetY = FlyAwayFromOtherBoids(flock, &flock.Boids[i])
+		flock.Boids[i].VX += offsetX
+		flock.Boids[i].VY += offsetY
+
+		offsetX, offsetY = MatchBoidVelocity(flock, &flock.Boids[i])
+		flock.Boids[i].VX += offsetX
+		flock.Boids[i].VY += offsetY
 
 		flock.Boids[i].X += flock.Boids[i].VX
 		flock.Boids[i].Y += flock.Boids[i].VY
@@ -78,8 +87,8 @@ func UpdateFlock(flock Flock) Flock {
 // Rule 1:
 // Boids try to fly towards the centre of mass of neighbouring boids.
 func FlyTowardsCenter(flock Flock, boid *Boid) (offsetX float64, offsetY float64) {
-	PerceivedCenterX := 0.0
-	PerceivedCenterY := 0.0
+	pcX := 0.0
+	pcY := 0.0
 
 	for i := range flock.Boids {
 		// "perceived" center, excluding oneself
@@ -87,16 +96,68 @@ func FlyTowardsCenter(flock Flock, boid *Boid) (offsetX float64, offsetY float64
 			continue
 		}
 
-		PerceivedCenterX += flock.Boids[i].X
-		PerceivedCenterY += flock.Boids[i].Y
+		pcX += flock.Boids[i].X
+		pcY += flock.Boids[i].Y
 	}
 
-	PerceivedCenterX /= flock.FlockSize - 1
-	PerceivedCenterY /= flock.FlockSize - 1
+	pcX = pcX / (flock.FlockSize - 1)
+	pcY = pcY / (flock.FlockSize - 1)
 
-	//fmt.Printf("FlyTowardsCenter -> [%v, %v]\n", PerceivedCenterX, PerceivedCenterY)
+	offsetX = (pcX - boid.X) / 100
+	offsetY = (pcY - boid.Y) / 100
+	return offsetX, offsetY
+}
 
-	offsetX = (PerceivedCenterX - boid.X) / 100
-	offsetY = (PerceivedCenterY - boid.Y) / 100
-	return
+// FlyAwayFromOtherBoids
+// Rule 2:
+// Boids try to keep a small distance from other Boids
+func FlyAwayFromOtherBoids(flock Flock, boid *Boid) (offsetX float64, offsetY float64) {
+	for i := range flock.Boids {
+		if *boid == flock.Boids[i] {
+			continue
+		}
+
+		// distance between the two boids
+		distance := Distance(*boid, flock.Boids[i])
+
+		// if too close,
+		if distance < 20 {
+			offsetX -= flock.Boids[i].X - boid.X
+			offsetY -= flock.Boids[i].Y - boid.Y
+		}
+	}
+	return offsetX, offsetY
+}
+
+// MatchBoidVelocity
+// Rule 3:
+// Boids try to match velocity of neighbouring boids.
+func MatchBoidVelocity(flock Flock, boid *Boid) (offsetX float64, offsetY float64) {
+	pvX := 0.0
+	pvY := 0.0
+
+	for i := range flock.Boids {
+		// "perceived" center, excluding oneself
+		if *boid == flock.Boids[i] {
+			continue
+		}
+
+		pvX += flock.Boids[i].VX
+		pvY += flock.Boids[i].VY
+	}
+
+	pvX = pvX / (flock.FlockSize - 1)
+	pvY = pvY / (flock.FlockSize - 1)
+
+	offsetX = (pvX - boid.VX) / 8
+	offsetY = (pvY - boid.VY) / 8
+	return offsetX, offsetY
+}
+
+// Distance
+// Euclidean distance between two x,y points
+func Distance(boid1 Boid, boid2 Boid) float64 {
+	return math.Sqrt(
+		math.Pow(boid1.X-boid2.X, 2) +
+			math.Pow(boid1.Y-boid2.Y, 2))
 }
