@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	FlockSize = 100
+	FlockSize = 200
 )
 
 var flock = CreateFlock(FlockSize)

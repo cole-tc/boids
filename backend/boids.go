@@ -7,8 +7,9 @@ import (
 
 // TODO: dynamically scale this for each screen
 const (
-	MaxY float64 = 1200
-	MaxX float64 = 1600
+	MaxX       float64 = 1600
+	MaxY       float64 = 1200
+	SpeedLimit float64 = 5000
 )
 
 type Boid struct {
@@ -27,7 +28,9 @@ type Flock struct {
 	Boids []Boid `json:"boids"`
 
 	// float64 for less type conversion
-	FlockSize float64 `json:"flockSize"`
+	FlockSize float64
+
+	SpeedLimit float64
 }
 
 // CreateFlock
@@ -75,6 +78,9 @@ func UpdateFlock(flock Flock) Flock {
 		flock.Boids[i].VX += offsetX
 		flock.Boids[i].VY += offsetY
 
+		// limit speed after calculations, before committing
+		LimitSpeed(flock, &flock.Boids[i])
+
 		flock.Boids[i].X += flock.Boids[i].VX
 		flock.Boids[i].Y += flock.Boids[i].VY
 	}
@@ -118,8 +124,7 @@ func FlyAwayFromOtherBoids(flock Flock, boid *Boid) (offsetX float64, offsetY fl
 		// distance between the two boids
 		distance := Distance(*boid, flock.Boids[i])
 
-		// if too close,
-		if distance < 20 {
+		if distance < 25 {
 			offsetX -= flock.Boids[i].X - boid.X
 			offsetY -= flock.Boids[i].Y - boid.Y
 		}
@@ -167,6 +172,20 @@ func StayWithinBounds(flock Flock, boid *Boid) (offsetX float64, offsetY float64
 		offsetY = -10
 	}
 	return offsetX, offsetY
+}
+
+// LimitSpeed
+// Limit the speed of the Boid
+// This func should run last, as it directly modifies the Boid velocity
+func LimitSpeed(flock Flock, boid *Boid) {
+	speed := math.Sqrt(
+		math.Pow(boid.X, 2) + math.Pow(boid.Y, 2))
+
+	if speed > SpeedLimit {
+		boid.VX = (boid.VX / speed) * SpeedLimit
+		boid.VY = (boid.VY / speed) * SpeedLimit
+	}
+
 }
 
 // Distance
