@@ -1,13 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 )
 
 type Boid struct {
-	X  float64 `json:"x"`
-	Y  float64 `json:"y"`
+
+	// grid position
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+
+	// velocities
 	VX float64 `json:"vx"`
 	VY float64 `json:"vy"`
 }
@@ -15,8 +18,12 @@ type Boid struct {
 type Flock struct {
 	// the flock members
 	Boids []Boid `json:"boids"`
+
+	// float64 for less type conversion
+	FlockSize float64 `json:"flockSize"`
 }
 
+// CreateFlock
 // Initialize boids randomly within a 800x600 space
 func CreateFlock(flockSize int) Flock {
 	// init random pos + vel
@@ -32,19 +39,25 @@ func CreateFlock(flockSize int) Flock {
 		}
 	}
 
-	flock := Flock{Boids: boids}
+	flock := Flock{
+		Boids:     boids,
+		FlockSize: float64(len(boids)),
+	}
 
 	return flock
 }
 
+// UpdateFlock
 // Update boid positions (basic movement logic for now)
 func UpdateFlock(flock Flock) Flock {
-	fmt.Println("updatingFlock...")
-
 	// StackOverflow: "Structs are copied in range loops. You need to access by index."
 	for i := range flock.Boids {
-		flock.Boids[i].X += flock.Boids[i].VX * 5
-		flock.Boids[i].Y += flock.Boids[i].VY * 5
+		Rule1X, Rule1Y := FlyTowardsCenter(flock, &flock.Boids[i])
+		flock.Boids[i].X += Rule1X
+		flock.Boids[i].Y += Rule1Y
+
+		flock.Boids[i].X += flock.Boids[i].VX
+		flock.Boids[i].Y += flock.Boids[i].VY
 
 		// Keep flock.Boids[i] inside bounds (wrap around)
 		if flock.Boids[i].X < 0 {
@@ -59,4 +72,31 @@ func UpdateFlock(flock Flock) Flock {
 		}
 	}
 	return flock
+}
+
+// FlyTowardsCenter
+// Rule 1:
+// Boids try to fly towards the centre of mass of neighbouring boids.
+func FlyTowardsCenter(flock Flock, boid *Boid) (offsetX float64, offsetY float64) {
+	PerceivedCenterX := 0.0
+	PerceivedCenterY := 0.0
+
+	for i := range flock.Boids {
+		// "perceived" center, excluding oneself
+		if *boid == flock.Boids[i] {
+			continue
+		}
+
+		PerceivedCenterX += flock.Boids[i].X
+		PerceivedCenterY += flock.Boids[i].Y
+	}
+
+	PerceivedCenterX /= flock.FlockSize - 1
+	PerceivedCenterY /= flock.FlockSize - 1
+
+	//fmt.Printf("FlyTowardsCenter -> [%v, %v]\n", PerceivedCenterX, PerceivedCenterY)
+
+	offsetX = (PerceivedCenterX - boid.X) / 100
+	offsetY = (PerceivedCenterY - boid.Y) / 100
+	return
 }
