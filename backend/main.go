@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	FlockSize = 200
+	FlockSize = 300
 )
 
 var flock = CreateFlock(FlockSize)
@@ -36,7 +36,7 @@ func main() {
 	log.Println("Server started on :8080")
 	go func() {
 		for {
-			time.Sleep(100 * time.Millisecond) // Update boids every 100ms
+			time.Sleep(50 * time.Millisecond) // Update boids every 100ms
 			flock = UpdateFlock(flock)
 		}
 	}()

@@ -7,9 +7,10 @@ import (
 
 // TODO: dynamically scale this for each screen
 const (
-	MaxX       float64 = 1600
-	MaxY       float64 = 1200
-	SpeedLimit float64 = 5000
+	MaxX        float64 = 2500
+	MaxY        float64 = 1200
+	SpeedLimit  float64 = 200
+	MinDistance float64 = 20
 )
 
 type Boid struct {
@@ -62,24 +63,24 @@ func CreateFlock(flockSize int) Flock {
 func UpdateFlock(flock Flock) Flock {
 	// StackOverflow: "Structs are copied in range loops. You need to access by index."
 	for i := range flock.Boids {
-		offsetX, offsetY := FlyTowardsCenter(flock, &flock.Boids[i])
+		offsetX, offsetY := flock.Boids[i].FlyTowardsCenter(flock)
 		flock.Boids[i].VX += offsetX
 		flock.Boids[i].VY += offsetY
 
-		offsetX, offsetY = FlyAwayFromOtherBoids(flock, &flock.Boids[i])
+		offsetX, offsetY = flock.Boids[i].FlyAwayFromOtherBoids(flock)
 		flock.Boids[i].VX += offsetX
 		flock.Boids[i].VY += offsetY
 
-		offsetX, offsetY = MatchBoidVelocity(flock, &flock.Boids[i])
+		offsetX, offsetY = flock.Boids[i].MatchBoidVelocity(flock)
 		flock.Boids[i].VX += offsetX
 		flock.Boids[i].VY += offsetY
 
-		offsetX, offsetY = StayWithinBounds(flock, &flock.Boids[i])
+		offsetX, offsetY = flock.Boids[i].StayWithinBounds(flock)
 		flock.Boids[i].VX += offsetX
 		flock.Boids[i].VY += offsetY
 
 		// limit speed after calculations, before committing
-		LimitSpeed(flock, &flock.Boids[i])
+		flock.Boids[i].LimitSpeed()
 
 		flock.Boids[i].X += flock.Boids[i].VX
 		flock.Boids[i].Y += flock.Boids[i].VY
@@ -90,7 +91,7 @@ func UpdateFlock(flock Flock) Flock {
 // FlyTowardsCenter
 // Rule 1:
 // Boids try to fly towards the centre of mass of neighbouring boids.
-func FlyTowardsCenter(flock Flock, boid *Boid) (offsetX float64, offsetY float64) {
+func (boid *Boid) FlyTowardsCenter(flock Flock) (offsetX float64, offsetY float64) {
 	pcX := 0.0
 	pcY := 0.0
 
@@ -107,15 +108,15 @@ func FlyTowardsCenter(flock Flock, boid *Boid) (offsetX float64, offsetY float64
 	pcX = pcX / (FlockSize - 1)
 	pcY = pcY / (FlockSize - 1)
 
-	offsetX = (pcX - boid.X) / 100
-	offsetY = (pcY - boid.Y) / 100
+	offsetX = (pcX - boid.X) / 200
+	offsetY = (pcY - boid.Y) / 200
 	return offsetX, offsetY
 }
 
 // FlyAwayFromOtherBoids
 // Rule 2:
 // Boids try to keep a small distance from other Boids
-func FlyAwayFromOtherBoids(flock Flock, boid *Boid) (offsetX float64, offsetY float64) {
+func (boid *Boid) FlyAwayFromOtherBoids(flock Flock) (offsetX float64, offsetY float64) {
 	for i := range flock.Boids {
 		if *boid == flock.Boids[i] {
 			continue
@@ -124,7 +125,7 @@ func FlyAwayFromOtherBoids(flock Flock, boid *Boid) (offsetX float64, offsetY fl
 		// distance between the two boids
 		distance := Distance(*boid, flock.Boids[i])
 
-		if distance < 25 {
+		if distance < MinDistance {
 			offsetX -= flock.Boids[i].X - boid.X
 			offsetY -= flock.Boids[i].Y - boid.Y
 		}
@@ -135,7 +136,7 @@ func FlyAwayFromOtherBoids(flock Flock, boid *Boid) (offsetX float64, offsetY fl
 // MatchBoidVelocity
 // Rule 3:
 // Boids try to match velocity of neighbouring boids.
-func MatchBoidVelocity(flock Flock, boid *Boid) (offsetX float64, offsetY float64) {
+func (boid *Boid) MatchBoidVelocity(flock Flock) (offsetX float64, offsetY float64) {
 	pvX := 0.0
 	pvY := 0.0
 
@@ -159,7 +160,7 @@ func MatchBoidVelocity(flock Flock, boid *Boid) (offsetX float64, offsetY float6
 
 // StayWithinBounds
 // Softly coax the Boid back within the canvas bounds
-func StayWithinBounds(flock Flock, boid *Boid) (offsetX float64, offsetY float64) {
+func (boid *Boid) StayWithinBounds(flock Flock) (offsetX float64, offsetY float64) {
 	if boid.X < 0 {
 		offsetX = 10
 	} else if boid.X > MaxX {
@@ -177,15 +178,14 @@ func StayWithinBounds(flock Flock, boid *Boid) (offsetX float64, offsetY float64
 // LimitSpeed
 // Limit the speed of the Boid
 // This func should run last, as it directly modifies the Boid velocity
-func LimitSpeed(flock Flock, boid *Boid) {
+func (boid *Boid) LimitSpeed() {
 	speed := math.Sqrt(
-		math.Pow(boid.X, 2) + math.Pow(boid.Y, 2))
+		math.Pow(boid.VX, 2) + math.Pow(boid.VY, 2))
 
 	if speed > SpeedLimit {
 		boid.VX = (boid.VX / speed) * SpeedLimit
 		boid.VY = (boid.VY / speed) * SpeedLimit
 	}
-
 }
 
 // Distance

@@ -19,10 +19,10 @@ function drawBoids(flock) {
     flock.boids.forEach(boid => {
         ctx.beginPath();
         ctx.arc(boid.x, boid.y, 5, 0, Math.PI * 2);
-        ctx.fillStyle = "white";
+        ctx.fillStyle = "black";
         ctx.fill();
         ctx.closePath();
     });
 }
 
-setInterval(fetchBoids, 100);
+setInterval(fetchBoids, 50);
