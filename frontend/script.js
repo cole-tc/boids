@@ -25,4 +25,4 @@ function drawBoids(flock) {
     });
 }
 
-setInterval(fetchBoids, 50);
+setInterval(fetchBoids, 100);

@@ -75,7 +75,7 @@ func UpdateFlock(flock Flock) Flock {
 		flock.Boids[i].VX += offsetX
 		flock.Boids[i].VY += offsetY
 
-		offsetX, offsetY = flock.Boids[i].StayWithinBounds(flock)
+		offsetX, offsetY = flock.Boids[i].StayWithinBounds()
 		flock.Boids[i].VX += offsetX
 		flock.Boids[i].VY += offsetY
 
@@ -123,7 +123,7 @@ func (boid *Boid) FlyAwayFromOtherBoids(flock Flock) (offsetX float64, offsetY f
 		}
 
 		// distance between the two boids
-		distance := Distance(*boid, flock.Boids[i])
+		distance := boid.Distance(flock.Boids[i])
 
 		if distance < MinDistance {
 			offsetX -= flock.Boids[i].X - boid.X
@@ -160,16 +160,16 @@ func (boid *Boid) MatchBoidVelocity(flock Flock) (offsetX float64, offsetY float
 
 // StayWithinBounds
 // Softly coax the Boid back within the canvas bounds
-func (boid *Boid) StayWithinBounds(flock Flock) (offsetX float64, offsetY float64) {
-	if boid.X < 0 {
+func (boid *Boid) StayWithinBounds() (offsetX float64, offsetY float64) {
+	if boid.X-100 < 0 {
 		offsetX = 10
-	} else if boid.X > MaxX {
+	} else if boid.X+100 > MaxX {
 		offsetX = -10
 	}
 
-	if boid.Y < 0 {
+	if boid.Y-100 < 0 {
 		offsetY = 10
-	} else if boid.Y > MaxY {
+	} else if boid.Y+100 > MaxY {
 		offsetY = -10
 	}
 	return offsetX, offsetY
@@ -190,8 +190,8 @@ func (boid *Boid) LimitSpeed() {
 
 // Distance
 // Euclidean distance between two x,y points
-func Distance(boid1 Boid, boid2 Boid) float64 {
+func (boid *Boid) Distance(otherBoid Boid) float64 {
 	return math.Sqrt(
-		math.Pow(boid1.X-boid2.X, 2) +
-			math.Pow(boid1.Y-boid2.Y, 2))
+		math.Pow(boid.X-otherBoid.X, 2) +
+			math.Pow(boid.Y-otherBoid.Y, 2))
 }
