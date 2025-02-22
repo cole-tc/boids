@@ -7,7 +7,11 @@ import (
 	"time"
 )
 
-var flock = CreateFlock(50)
+const (
+	FlockSize = 100
+)
+
+var flock = CreateFlock(FlockSize)
 
 func getBoidsHandler(w http.ResponseWriter, r *http.Request) {
 	// update the math

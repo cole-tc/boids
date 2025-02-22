@@ -5,6 +5,12 @@ import (
 	"math/rand"
 )
 
+// TODO: dynamically scale this for each screen
+const (
+	MaxY float64 = 1200
+	MaxX float64 = 1600
+)
+
 type Boid struct {
 
 	// grid position
@@ -32,8 +38,8 @@ func CreateFlock(flockSize int) Flock {
 	for i := range boids {
 		boids[i] = Boid{
 			// 800x600 space
-			X: rand.Float64() * 800,
-			Y: rand.Float64() * 600,
+			X: rand.Float64() * MaxX,
+			Y: rand.Float64() * MaxY,
 			// rand gives random between 0.0 and 1.0
 			VX: (rand.Float64() * 2) - 1,
 			VY: (rand.Float64() * 2) - 1,
@@ -42,7 +48,7 @@ func CreateFlock(flockSize int) Flock {
 
 	flock := Flock{
 		Boids:     boids,
-		FlockSize: float64(len(boids)),
+		FlockSize: FlockSize,
 	}
 
 	return flock
@@ -65,20 +71,12 @@ func UpdateFlock(flock Flock) Flock {
 		flock.Boids[i].VX += offsetX
 		flock.Boids[i].VY += offsetY
 
+		offsetX, offsetY = StayWithinBounds(flock, &flock.Boids[i])
+		flock.Boids[i].VX += offsetX
+		flock.Boids[i].VY += offsetY
+
 		flock.Boids[i].X += flock.Boids[i].VX
 		flock.Boids[i].Y += flock.Boids[i].VY
-
-		// Keep flock.Boids[i] inside bounds (wrap around)
-		if flock.Boids[i].X < 0 {
-			flock.Boids[i].X = 800
-		} else if flock.Boids[i].X > 800 {
-			flock.Boids[i].X = 0
-		}
-		if flock.Boids[i].Y < 0 {
-			flock.Boids[i].Y = 600
-		} else if flock.Boids[i].Y > 600 {
-			flock.Boids[i].Y = 0
-		}
 	}
 	return flock
 }
@@ -100,8 +98,8 @@ func FlyTowardsCenter(flock Flock, boid *Boid) (offsetX float64, offsetY float64
 		pcY += flock.Boids[i].Y
 	}
 
-	pcX = pcX / (flock.FlockSize - 1)
-	pcY = pcY / (flock.FlockSize - 1)
+	pcX = pcX / (FlockSize - 1)
+	pcY = pcY / (FlockSize - 1)
 
 	offsetX = (pcX - boid.X) / 100
 	offsetY = (pcY - boid.Y) / 100
@@ -146,11 +144,28 @@ func MatchBoidVelocity(flock Flock, boid *Boid) (offsetX float64, offsetY float6
 		pvY += flock.Boids[i].VY
 	}
 
-	pvX = pvX / (flock.FlockSize - 1)
-	pvY = pvY / (flock.FlockSize - 1)
+	pvX = pvX / (FlockSize - 1)
+	pvY = pvY / (FlockSize - 1)
 
 	offsetX = (pvX - boid.VX) / 8
 	offsetY = (pvY - boid.VY) / 8
+	return offsetX, offsetY
+}
+
+// StayWithinBounds
+// Softly coax the Boid back within the canvas bounds
+func StayWithinBounds(flock Flock, boid *Boid) (offsetX float64, offsetY float64) {
+	if boid.X < 0 {
+		offsetX = 10
+	} else if boid.X > MaxX {
+		offsetX = -10
+	}
+
+	if boid.Y < 0 {
+		offsetY = 10
+	} else if boid.Y > MaxY {
+		offsetY = -10
+	}
 	return offsetX, offsetY
 }
 
